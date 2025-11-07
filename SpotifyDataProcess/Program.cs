@@ -126,6 +126,27 @@ namespace SpotifyDataProcess
                 limit++;
             }
         }
+        private static void processGraphSum(List<Record> records, int sumDays = 0, Func<Record, bool>? selection = null)
+        {
+            if (selection == null)
+                selection = x => true;
+            var selected = records.Where(selection).ToList();
+            var groupedDays = selected.Select(x => new { x.ts.Date, x.ms_played })
+                                        .GroupBy(x => new { x.Date })
+                                        .Select(x => new
+                                        {
+                                            Date = x.Key.Date,
+                                            Playtime = x.Sum(s => s.ms_played)
+                                        }).OrderBy(x => x.Date).ToList();
+            var smooothDays = groupedDays.Select((day, index) => new
+            {
+                day.Date,
+                AvgPlaytime = groupedDays.Where(x => x.Date >= day.Date.AddDays(-1 * (sumDays/2)) && x.Date <= day.Date.AddDays(sumDays/2)).Sum(d => d.Playtime) / (double)(sumDays + 1)
+            }).ToList();
+
+            string json = JsonSerializer.Serialize(smooothDays);
+            File.WriteAllText("graphData.json", json);
+        }
         private static void processResults(List<Record> records)
         {
             long totalMinutes = records.Sum(x => x.ms_played ?? 0) / (1000 * 60);
@@ -143,6 +164,8 @@ namespace SpotifyDataProcess
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
+            processGraphSum(records, 40, x => /*x.master_metadata_album_artist_name?.Contains("Green Day") == true &&*/
+                                                x.master_metadata_track_name?.Contains("Každý ráno") == true);
         }
         static void Main(string[] args)
         {
