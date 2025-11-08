@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_json("graphData.json")
+df = pd.read_json("bin/Debug/net8.0/graphData.json")
 df["Date"] = pd.to_datetime(df["Date"])
 df = df.sort_values("Date")
 

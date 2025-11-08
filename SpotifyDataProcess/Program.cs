@@ -138,13 +138,17 @@ namespace SpotifyDataProcess
                                             Date = x.Key.Date,
                                             Playtime = x.Sum(s => s.ms_played)
                                         }).OrderBy(x => x.Date).ToList();
-            var smooothDays = groupedDays.Select((day, index) => new
-            {
-                day.Date,
-                AvgPlaytime = groupedDays.Where(x => x.Date >= day.Date.AddDays(-1 * (sumDays/2)) && x.Date <= day.Date.AddDays(sumDays/2)).Sum(d => d.Playtime) / (double)(sumDays + 1)
-            }).ToList();
 
-            string json = JsonSerializer.Serialize(smooothDays);
+            var dates = groupedDays.Select(x => x.Date).OrderBy(x => x).ToList();
+            var dateMin = dates[0].AddDays(-1 * (sumDays / 2));
+            var dateMax = dates[dates.Count - 1].AddDays(sumDays / 2);
+            List<GraphData> smoothedDays = new List<GraphData>();
+            for (DateTime i = dateMin; i <= dateMax; i = i.AddDays(1))
+            {
+                smoothedDays.Add(new GraphData { Date = i, AvgPlaytime = (groupedDays.Where(x => x.Date >= i.AddDays(-1 * (sumDays / 2)) && x.Date <= i.AddDays(sumDays / 2)).Sum(d => d.Playtime) ?? 0) / (double)(sumDays - (sumDays % 2) + 1) });
+            }
+
+            string json = JsonSerializer.Serialize(smoothedDays);
             File.WriteAllText("graphData.json", json);
         }
         private static void processResults(List<Record> records)
@@ -164,8 +168,8 @@ namespace SpotifyDataProcess
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
-            processGraphSum(records, 40, x => /*x.master_metadata_album_artist_name?.Contains("Green Day") == true &&*/
-                                                x.master_metadata_track_name?.Contains("Každý ráno") == true);
+            processGraphSum(records, 40, x => /*x.master_metadata_album_artist_name?.Contains("David Guetta") == true/* && /**/
+                                                x.master_metadata_track_name == "TiK ToK" /**/);
         }
         static void Main(string[] args)
         {
