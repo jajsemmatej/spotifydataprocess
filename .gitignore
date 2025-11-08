@@ -5,6 +5,7 @@
 */spotify_data/*
 .DS_Store
 *graphData.json
+*/graphs/*
 # User-specific files
 *.rsuser
 *.suo

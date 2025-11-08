@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Text.Json;
 
 namespace SpotifyDataProcess
@@ -126,7 +127,7 @@ namespace SpotifyDataProcess
                 limit++;
             }
         }
-        private static void processGraphSum(List<Record> records, int sumDays = 0, Func<Record, bool>? selection = null)
+        private static void processGraphSum(List<Record> records, string filename = "graphData", int sumDays = 0, Func<Record, bool>? selection = null)
         {
             if (selection == null)
                 selection = x => true;
@@ -141,7 +142,7 @@ namespace SpotifyDataProcess
 
             var dates = groupedDays.Select(x => x.Date).OrderBy(x => x).ToList();
             var dateMin = dates[0].AddDays(-1 * (sumDays / 2));
-            var dateMax = dates[dates.Count - 1].AddDays(sumDays / 2);
+            var dateMax = dates[dates.Count - 1];
             List<GraphData> smoothedDays = new List<GraphData>();
             for (DateTime i = dateMin; i <= dateMax; i = i.AddDays(1))
             {
@@ -149,7 +150,54 @@ namespace SpotifyDataProcess
             }
 
             string json = JsonSerializer.Serialize(smoothedDays);
-            File.WriteAllText("graphData.json", json);
+            File.WriteAllText($"{filename}.json", json);
+        }
+        private static void processGraphSumSimplified(List<Record> records, string filename, int sumDays, string? artist, string? song)
+        {
+            Func<Record, bool> selector = x => true;
+            int selection = (artist == null ? 0 : 1) + (song == null ? 0 : 2);
+            if (selection == 3)
+                selector = x => x.master_metadata_album_artist_name?.ToLower()?.Contains(artist.ToLower()) == true && x.master_metadata_track_name?.ToLower() == song.ToLower();
+            if (selection == 1)
+                selector = x => x.master_metadata_album_artist_name?.ToLower()?.Contains(artist.ToLower()) == true;
+            if(selection == 2)
+                selector = x => x.master_metadata_track_name?.ToLower() == song.ToLower();
+            processGraphSum(records, filename, sumDays, selector);
+        }
+        private static void myGraphs(List<Record> records)
+        {
+            processGraphSumSimplified(records, "total", 30, null, null);
+            processGraphSumSimplified(records, "roxette", 30, "roxette", null);
+            processGraphSumSimplified(records, "abba", 30, "abba", null);
+            processGraphSumSimplified(records, "tobu", 30, "tobu", null);
+            processGraphSumSimplified(records, "pitbull", 30, "pitbull", null);
+            processGraphSumSimplified(records, "green_day", 30, "green day", null);
+            processGraphSumSimplified(records, "david_guetta", 30, "david guetta", null);
+            processGraphSumSimplified(records, "alan_walker", 30, "alan walker", null);
+            processGraphSumSimplified(records, "avicii", 30, "avicii", null);
+            processGraphSumSimplified(records, "linkin_park", 30, "linkin park", null);
+            processGraphSumSimplified(records, "lady_gaga", 30, "lady gaga", null);
+            processGraphSumSimplified(records, "imagine_dragons", 30, "imagine dragons", null);
+            processGraphSumSimplified(records, "sia", 30, "sia", null);
+            processGraphSumSimplified(records, "taylor_swift", 30, "taylor swift", null);
+            processGraphSumSimplified(records, "martin_garrix", 30, "martin garrix", null);
+            processGraphSumSimplified(records, "emily_justice", 30, "emily & justice", null);
+            processGraphSumSimplified(records, "horkyze_slize", 30, "horkýže slíže", null);
+            processGraphSumSimplified(records, "kabat", 30, "kabát", null);
+
+            processGraphSumSimplified(records, "roxette_sleeping_in_my_car", 30, "Roxette", "sleeping in my car");
+            processGraphSumSimplified(records, "roxette_joyride", 30, "Roxette", "joyride");
+            processGraphSumSimplified(records, "roxette_dangerous", 30, "Roxette", "dangerous");
+            processGraphSumSimplified(records, "roxette_fading_like_a_flower", 30, "Roxette", "Fading like a flower (every time you leave)");
+            processGraphSumSimplified(records, "roxette_the_look", 30, "Roxette", "the look");
+
+            processGraphSumSimplified(records, "i_wanna_dance_with_somebody", 30, null, "i wanna dance with somebody (who loves me)");
+            processGraphSumSimplified(records, "nicki_minaj_starships", 30, "Nicki minaj", "starships");
+            processGraphSumSimplified(records, "aha_take_on_me", 30, "a-ha", "take on me");
+            processGraphSumSimplified(records, "the_fox", 30, null, "The Fox (What Does the Fox Say?)");
+            processGraphSumSimplified(records, "chinaski_kazdy_rano", 30, "chinaski", "každý ráno");
+            processGraphSumSimplified(records, "kesha_tik_tok", 30, "kesha", "tik tok");
+
         }
         private static void processResults(List<Record> records)
         {
@@ -168,8 +216,7 @@ namespace SpotifyDataProcess
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
-            processGraphSum(records, 40, x => /*x.master_metadata_album_artist_name?.Contains("David Guetta") == true/* && /**/
-                                                x.master_metadata_track_name == "TiK ToK" /**/);
+            myGraphs(records);
         }
         static void Main(string[] args)
         {
