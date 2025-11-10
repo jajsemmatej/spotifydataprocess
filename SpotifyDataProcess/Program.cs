@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Text.Json;
+using System.Globalization;
 
 namespace SpotifyDataProcess
 {
@@ -63,32 +64,11 @@ namespace SpotifyDataProcess
                 limit--;
             }
         }
-        private static void processTopArtistsLastYears(List<Record> records, int limit, int lastYears)
+        private static List<Record> ListDataRange(List<Record> records, string fromDate, string toDate)
         {
-            var maxdate = records.OrderByDescending(x => x.ts).FirstOrDefault().ts.Date;
-            var selectedRecords = records.Where(x => x.ts > maxdate.AddYears((-1) * lastYears)).ToList();
-            var groupedSongs = selectedRecords.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
-                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
-                                        .Select(x => new
-                                        {
-                                            Song = x.Key.master_metadata_track_name,
-                                            Artist = x.Key.master_metadata_album_artist_name,
-                                            Playtime = x.Sum(s => s.ms_played)
-                                        }).ToList();
-            var groupedArtists = groupedSongs.GroupBy(x => x.Artist)
-                                        .Select(x => new
-                                        {
-                                            Artist = x.Key,
-                                            Playtime = x.Sum(s => s.Playtime)
-                                        }).ToList();
-            Console.WriteLine("The list of top " + limit + " artists in last " + lastYears + " years:");
-            Console.WriteLine();
-            int topArtistCount2 = limit;
-            foreach (var artist in groupedArtists.OrderByDescending(x => x.Playtime).Take(limit).ToList())
-            {
-                Console.WriteLine((topArtistCount2 - limit + 1) + ": " + artist.Artist + " (" + (artist.Playtime / (1000 * 60)) + ")");
-                limit--;
-            }
+            DateTime from = DateTime.ParseExact(fromDate, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+            DateTime to = DateTime.ParseExact(toDate, "dd-MM-yyyy", CultureInfo.InvariantCulture);
+            return records.Where(x => x.ts.Date >= from && x.ts.Date <= to).ToList();
         }
         private static void processTopSongsByArtist(List<Record> records, int limit, string artist)
         {
@@ -195,39 +175,57 @@ namespace SpotifyDataProcess
         }
         private static void myGraphs(List<Record> records)
         {
-            int smoothing = 20;
-            processGraphSumSimplified(records, "total", smoothing, null, null);
-            processGraphSumSimplified(records, "roxette", smoothing, "roxette", null);
-            processGraphSumSimplified(records, "abba", smoothing, "abba", null);
-            processGraphSumSimplified(records, "tobu", smoothing, "tobu", null);
-            processGraphSumSimplified(records, "pitbull", smoothing, "pitbull", null);
-            processGraphSumSimplified(records, "green_day", smoothing, "green day", null);
-            processGraphSumSimplified(records, "david_guetta", smoothing, "david guetta", null);
-            processGraphSumSimplified(records, "alan_walker", smoothing, "alan walker", null);
-            processGraphSumSimplified(records, "avicii", smoothing, "avicii", null);
-            processGraphSumSimplified(records, "linkin_park", smoothing, "linkin park", null);
-            processGraphSumSimplified(records, "lady_gaga", smoothing, "lady gaga", null);
-            processGraphSumSimplified(records, "imagine_dragons", smoothing, "imagine dragons", null);
-            processGraphSumSimplified(records, "sia", smoothing, "sia", null);
-            processGraphSumSimplified(records, "taylor_swift", smoothing, "taylor swift", null);
-            processGraphSumSimplified(records, "martin_garrix", smoothing, "martin garrix", null);
-            processGraphSumSimplified(records, "emily_justice", smoothing, "emily & justice", null);
-            processGraphSumSimplified(records, "horkyze_slize", smoothing, "horkýže slíže", null);
-            processGraphSumSimplified(records, "kabat", smoothing, "kabát", null);
+            int smallSmoothing = 20;
+            processGraphSumSimplified(records, "total", smallSmoothing, null, null);
+            processGraphSumSimplified(records, "roxette", smallSmoothing, "roxette", null);
+            processGraphSumSimplified(records, "abba", smallSmoothing, "abba", null);
+            processGraphSumSimplified(records, "tobu", smallSmoothing, "tobu", null);
+            processGraphSumSimplified(records, "pitbull", smallSmoothing, "pitbull", null);
+            processGraphSumSimplified(records, "green_day", smallSmoothing, "green day", null);
+            processGraphSumSimplified(records, "david_guetta", smallSmoothing, "david guetta", null);
+            processGraphSumSimplified(records, "alan_walker", smallSmoothing, "alan walker", null);
+            processGraphSumSimplified(records, "avicii", smallSmoothing, "avicii", null);
+            processGraphSumSimplified(records, "linkin_park", smallSmoothing, "linkin park", null);
+            processGraphSumSimplified(records, "lady_gaga", smallSmoothing, "lady gaga", null);
+            processGraphSumSimplified(records, "imagine_dragons", smallSmoothing, "imagine dragons", null);
+            processGraphSumSimplified(records, "sia", smallSmoothing, "sia", null);
+            processGraphSumSimplified(records, "taylor_swift", smallSmoothing, "taylor swift", null);
+            processGraphSumSimplified(records, "martin_garrix", smallSmoothing, "martin garrix", null);
+            processGraphSumSimplified(records, "emily_justice", smallSmoothing, "emily & justice", null);
+            processGraphSumSimplified(records, "horkyze_slize", smallSmoothing, "horkýže slíže", null);
+            processGraphSumSimplified(records, "kabat", smallSmoothing, "kabát", null);
 
-            processGraphSumSimplified(records, "roxette_sleeping_in_my_car", smoothing, "Roxette", "sleeping in my car");
-            processGraphSumSimplified(records, "roxette_joyride", smoothing, "Roxette", "joyride");
-            processGraphSumSimplified(records, "roxette_dangerous", smoothing, "Roxette", "dangerous");
-            processGraphSumSimplified(records, "roxette_fading_like_a_flower", smoothing, "Roxette", "Fading like a flower (every time you leave)");
-            processGraphSumSimplified(records, "roxette_the_look", smoothing, "Roxette", "the look");
+            processGraphSumSimplified(records, "roxette_sleeping_in_my_car", smallSmoothing, "Roxette", "sleeping in my car");
+            processGraphSumSimplified(records, "roxette_joyride", smallSmoothing, "Roxette", "joyride");
+            processGraphSumSimplified(records, "roxette_dangerous", smallSmoothing, "Roxette", "dangerous");
+            processGraphSumSimplified(records, "roxette_fading_like_a_flower", smallSmoothing, "Roxette", "Fading like a flower (every time you leave)");
+            processGraphSumSimplified(records, "roxette_the_look", smallSmoothing, "Roxette", "the look");
 
-            processGraphSumSimplified(records, "i_wanna_dance_with_somebody", smoothing, null, "i wanna dance with somebody (who loves me)");
-            processGraphSumSimplified(records, "nicki_minaj_starships", smoothing, "Nicki minaj", "starships");
-            processGraphSumSimplified(records, "aha_take_on_me", smoothing, "a-ha", "take on me");
-            processGraphSumSimplified(records, "the_fox", smoothing, null, "The Fox (What Does the Fox Say?)");
-            processGraphSumSimplified(records, "chinaski_kazdy_rano", smoothing, "chinaski", "každý ráno");
-            processGraphSumSimplified(records, "kesha_tik_tok", smoothing, "kesha", "tik tok");
+            processGraphSumSimplified(records, "i_wanna_dance_with_somebody", smallSmoothing, null, "i wanna dance with somebody (who loves me)");
+            processGraphSumSimplified(records, "nicki_minaj_starships", smallSmoothing, "Nicki minaj", "starships");
+            processGraphSumSimplified(records, "aha_take_on_me", smallSmoothing, "a-ha", "take on me");
+            processGraphSumSimplified(records, "the_fox", smallSmoothing, null, "The Fox (What Does the Fox Say?)");
+            processGraphSumSimplified(records, "chinaski_kazdy_rano", smallSmoothing, "chinaski", "každý ráno");
+            processGraphSumSimplified(records, "kesha_tik_tok", smallSmoothing, "kesha", "tik tok");
+            processGraphSumSimplified(records, "zombie", smallSmoothing, "Lucie Vondráčková", "Zombie");
 
+            int bigSmoothing = 180;
+            processGraphSumSimplified(records, "total_smooth", bigSmoothing, null, null);
+            processGraphSumSimplified(records, "roxette_smooth", bigSmoothing, "roxette", null);
+            processGraphSumSimplified(records, "abba_smooth", bigSmoothing, "abba", null);
+            processGraphSumSimplified(records, "tobu_smooth", bigSmoothing, "tobu", null);
+            processGraphSumSimplified(records, "pitbull_smooth", bigSmoothing, "pitbull", null);
+            processGraphSumSimplified(records, "green_day_smooth", bigSmoothing, "green day", null);
+            processGraphSumSimplified(records, "david_guetta_smooth", bigSmoothing, "david guetta", null);
+            processGraphSumSimplified(records, "alan_walker_smooth", bigSmoothing, "alan walker", null);
+            processGraphSumSimplified(records, "avicii_smooth", bigSmoothing, "avicii", null);
+            processGraphSumSimplified(records, "linkin_park_smooth", bigSmoothing, "linkin park", null);
+            processGraphSumSimplified(records, "lady_gaga_smooth", bigSmoothing, "lady gaga", null);
+            processGraphSumSimplified(records, "imagine_dragons_smooth", bigSmoothing, "imagine dragons", null);
+            processGraphSumSimplified(records, "taylor_swift_smooth", bigSmoothing, "taylor swift", null);
+            processGraphSumSimplified(records, "martin_garrix_smooth", bigSmoothing, "martin garrix", null);
+            processGraphSumSimplified(records, "horkyze_slize_smooth", bigSmoothing, "horkýže slíže", null);
+            processGraphSumSimplified(records, "kabat_smooth", bigSmoothing, "kabát", null);
         }
         private static void processResults(List<Record> records)
         {
@@ -246,7 +244,7 @@ namespace SpotifyDataProcess
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
-            processTopArtistsLastYears(records, 30, 2);
+            processTopArtists(ListDataRange(records, "01-05-2024", "01-01-2025"), 20);
             printSeparator();
             myGraphs(records);
         }

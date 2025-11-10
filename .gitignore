@@ -7,6 +7,7 @@
 *graphData.json
 */graphs/*
 */graph_data/*
+*/venv/*
 # User-specific files
 *.rsuser
 *.suo
