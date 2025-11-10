@@ -4,29 +4,9 @@ import sys
 from pathlib import Path
 import os
 import matplotlib.dates as mdates
+import platform
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python script.py <filename>")
-        sys.exit(1)
-
-    filename = sys.argv[1]
-    json_path = None
-
-    binFolder = Path("bin/Debug/net8.0")
-    if binFolder.exists() and binFolder.is_dir():
-        json_path = binFolder / f"{filename}.json"
-    else:
-        json_path = Path(f"{filename}.json")
-
-    if not json_path.exists():
-        print(f"Error: JSON file not found at {json_path}")
-        sys.exit(1)
-
-    graphsFolder = Path("graphs")
-    if not graphsFolder.exists():
-        os.makedirs(graphsFolder)
-
+def createGraph(json_path, outfilename):
     df = pd.read_json(json_path)
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.sort_values("Date")
@@ -43,8 +23,30 @@ def main():
     ax.xaxis.set_major_locator(mdates.AutoDateLocator())
     ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(ax.xaxis.get_major_locator()))
 
-    plt.savefig("graphs/" + filename + ".png")
+    plt.savefig("graphs/" + outfilename + ".png")
     plt.close()
+
+def main():
+    json_folder = None
+
+    binFolder = Path("bin/Debug/net8.0")
+    if platform.system() == "Windows":
+        json_folder = binFolder / f"graph_data"
+    else:
+        json_folder = Path(f"graph_data")
+
+    if not json_folder.exists():
+        print(f"Error: graph_data folder not found")
+        sys.exit(1)
+
+    graphsFolder = Path("graphs")
+    if not graphsFolder.exists():
+        os.makedirs(graphsFolder)
+
+    for file in json_folder.iterdir():
+        if file.is_file() and file.suffix.lower() == ".json":
+            filename = file.stem
+            createGraph(file, filename)
 
 
 if __name__ == "__main__":

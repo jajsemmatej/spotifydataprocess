@@ -6,6 +6,7 @@
 .DS_Store
 *graphData.json
 */graphs/*
+*/graph_data/*
 # User-specific files
 *.rsuser
 *.suo
