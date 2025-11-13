@@ -39,6 +39,18 @@ namespace SpotifyDataProcess
                 limit--;
             }
         }
+        private static List<SongData> getTopSongs(List<Record> records, int limit)
+        {
+            var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new SongData
+                                        {
+                                            Song = x.Key.master_metadata_track_name,
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            Playtime = x.Sum(s => s.ms_played)
+                                        }).ToList();
+            return groupedSongs.OrderByDescending(x => x.Playtime).Take(limit).ToList();
+        }
         private static void processTopArtists(List<Record> records, int limit)
         {
             var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
@@ -134,7 +146,16 @@ namespace SpotifyDataProcess
                 limit++;
             }
         }
-        private static void processGraphSum(List<Record> records, string filename = "graphData", int sumDays = 0, Func<Record, bool>? selection = null)
+        private static List<GraphData> smoothGraphData(List<GraphData> data, int sumDays)
+        {
+            List<GraphData> smoothData = new List<GraphData>();
+            foreach (var d in data)
+            {
+                smoothData.Add(new GraphData { Date = d.Date, AvgPlaytime = data.Where(x => x.Date >= d.Date.AddDays(-1 * (sumDays / 2 + sumDays % 2)) && x.Date <= d.Date.AddDays(sumDays / 2)).Sum(y => y.AvgPlaytime) / (double)(sumDays + 1) });
+            }
+            return smoothData;
+        }
+        private static void processGraphSum(List<Record> records, string filename = "graphData", List<int>? sumDays = null, Func<Record, bool>? selection = null)
         {
             if (selection == null)
                 selection = x => true;
@@ -148,34 +169,43 @@ namespace SpotifyDataProcess
                                         }).OrderBy(x => x.Date).ToList();
 
             var dates = groupedDays.Select(x => x.Date).OrderBy(x => x).ToList();
-            var dateMin = dates[0].AddDays(-1 * (sumDays / 2));
+            var dateMin = dates[0];
             var dateMax = dates[dates.Count - 1];
             List<GraphData> smoothedDays = new List<GraphData>();
             for (DateTime i = dateMin; i <= dateMax; i = i.AddDays(1))
             {
-                smoothedDays.Add(new GraphData { Date = i, AvgPlaytime = (groupedDays.Where(x => x.Date >= i.AddDays(-1 * (sumDays / 2)) && x.Date <= i.AddDays(sumDays / 2)).Sum(d => d.Playtime) ?? 0) / (double)(sumDays - (sumDays % 2) + 1) });
+                smoothedDays.Add(new GraphData { Date = i, AvgPlaytime = groupedDays.FirstOrDefault(x => x.Date == i)?.Playtime ?? 0 });
             }
+
+            if (sumDays != null)
+                foreach (var sumValue in sumDays)
+                {
+                    smoothedDays = smoothGraphData(smoothedDays, sumValue);
+                }
 
             string json = JsonSerializer.Serialize(smoothedDays);
             if (!Directory.Exists("graph_data"))
                 Directory.CreateDirectory("graph_data");
             File.WriteAllText($"graph_data/{filename}.json", json);
         }
-        private static void processGraphSumSimplified(List<Record> records, string filename, int sumDays, string? artist, string? song)
+        private static Func<Record, bool> getSelector(string? artist, string? song)
         {
             Func<Record, bool> selector = x => true;
-            int selection = (artist == null ? 0 : 1) + (song == null ? 0 : 2);
-            if (selection == 3)
+            if (artist != null && song != null)
                 selector = x => x.master_metadata_album_artist_name?.ToLower()?.Contains(artist.ToLower()) == true && x.master_metadata_track_name?.ToLower() == song.ToLower();
-            if (selection == 1)
+            if (artist != null && song == null)
                 selector = x => x.master_metadata_album_artist_name?.ToLower()?.Contains(artist.ToLower()) == true;
-            if(selection == 2)
+            if (artist == null && song != null)
                 selector = x => x.master_metadata_track_name?.ToLower() == song.ToLower();
-            processGraphSum(records, filename, sumDays, selector);
+            return selector;
+        }
+        private static void processGraphSumSimplified(List<Record> records, string filename, List<int> sumDays, string? artist, string? song)
+        {
+            processGraphSum(records, filename, sumDays, getSelector(artist, song));
         }
         private static void myGraphs(List<Record> records)
         {
-            int smallSmoothing = 20;
+            var smallSmoothing = new List<int> { 30, 20 };
             processGraphSumSimplified(records, "total", smallSmoothing, null, null);
             processGraphSumSimplified(records, "roxette", smallSmoothing, "roxette", null);
             processGraphSumSimplified(records, "abba", smallSmoothing, "abba", null);
@@ -208,8 +238,9 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "chinaski_kazdy_rano", smallSmoothing, "chinaski", "každý ráno");
             processGraphSumSimplified(records, "kesha_tik_tok", smallSmoothing, "kesha", "tik tok");
             processGraphSumSimplified(records, "zombie", smallSmoothing, "Lucie Vondráčková", "Zombie");
+            processGraphSumSimplified(records, "titanium", smallSmoothing, "David Guetta", "Titanium (feat. sia)");
 
-            int bigSmoothing = 180;
+            var bigSmoothing = new List<int> { 180, 60 };
             processGraphSumSimplified(records, "total_smooth", bigSmoothing, null, null);
             processGraphSumSimplified(records, "roxette_smooth", bigSmoothing, "roxette", null);
             processGraphSumSimplified(records, "abba_smooth", bigSmoothing, "abba", null);
@@ -226,6 +257,94 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "martin_garrix_smooth", bigSmoothing, "martin garrix", null);
             processGraphSumSimplified(records, "horkyze_slize_smooth", bigSmoothing, "horkýže slíže", null);
             processGraphSumSimplified(records, "kabat_smooth", bigSmoothing, "kabát", null);
+
+            processGraphSumSimplified(records, "titanium_smooth", bigSmoothing, "David Guetta", "Titanium (feat. sia)");
+
+
+        }
+        private static List<DateInterval> songFavoriteTimes(List<Record> records, string? artist, string? song)
+        {
+            var selected = records.Where(getSelector(artist, song)).ToList();
+            var groupedDays = selected.Select(x => new { x.ts.Date, x.ms_played })
+                                        .GroupBy(x => new { x.Date })
+                                        .Select(x => new
+                                        {
+                                            Date = x.Key.Date,
+                                            Playtime = x.Sum(s => s.ms_played)
+                                        }).OrderBy(x => x.Date).ToList();
+
+            var dates = groupedDays.Select(x => x.Date).OrderBy(x => x).ToList();
+            var dateMin = dates[0];
+            var dateMax = dates[dates.Count - 1];
+            List<GraphData> smoothedDays = new List<GraphData>();
+            for (DateTime i = dateMin; i <= dateMax; i = i.AddDays(1))
+            {
+                smoothedDays.Add(new GraphData { Date = i, AvgPlaytime = groupedDays.FirstOrDefault(x => x.Date == i)?.Playtime ?? 0 });
+            }
+            var sumDays = new List<int> { 90, 60, 30 };
+            if (sumDays != null)
+                foreach (var sumValue in sumDays)
+                {
+                    smoothedDays = smoothGraphData(smoothedDays, sumValue);
+                }
+            var lowCutAvg = smoothedDays.Where(x => x.AvgPlaytime >= smoothedDays.OrderByDescending(y => y.AvgPlaytime).First().AvgPlaytime / 2).Average(x => x.AvgPlaytime);
+            List<DateInterval> result = new List<DateInterval>();
+            bool gap = true;
+            DateTime from = dateMin;
+            DateTime to = dateMin;
+            for (DateTime i = dateMin; i <= dateMax; i = i.AddDays(1))
+            {
+                if ((smoothedDays.FirstOrDefault(x => x.Date == i)?.AvgPlaytime ?? 0) >= lowCutAvg)
+                {
+                    if (gap == true)
+                    {
+                        gap = false;
+                        from = i;
+                        to = i;
+                    }
+                    else
+                    {
+                        to = i;
+                    }
+                }
+                else
+                {
+                    if (gap == false)
+                    {
+                        gap = true;
+                        result.Add(new DateInterval(from, to));
+                    }
+                }
+            }
+            if (gap == false)
+            {
+                gap = true;
+                result.Add(new DateInterval(from, to));
+            }
+            return result;
+        }
+        private static void getBindedSongs(List<Record> records, string? artist, string? song, List<SongData> songList, double overlap)
+        {
+            Console.WriteLine($"Matching songs for: {artist} - {song}");
+            int counter = 1;
+            var refIntervals = songFavoriteTimes(records, artist, song);
+            foreach (var songData in songList)
+            {
+                var intervals = songFavoriteTimes(records, songData.Artist, songData.Song);
+                bool match = false;
+                foreach (var refInterval in refIntervals)
+                {
+                    foreach (var interval in intervals)
+                    {
+                        if (interval.OverlapDays(refInterval) >= refInterval.Duration.TotalDays * overlap)
+                            match = true;
+                    }
+                }
+                if (match)
+                {
+                    Console.WriteLine($" - match found ({counter ++}): {songData.Artist} - {songData.Song}");
+                }
+            }
         }
         private static void processResults(List<Record> records)
         {
@@ -246,7 +365,11 @@ namespace SpotifyDataProcess
             printSeparator();
             processTopArtists(ListDataRange(records, "01-05-2024", "01-01-2025"), 20);
             printSeparator();
-            myGraphs(records);
+            //myGraphs(records);
+            //getBindedSongs(records, "David Guetta", "Titanium (feat. Sia)", getTopSongs(records, 2000), 0.66);
+            var intervals = songFavoriteTimes(records, "chinaski", "každý ráno");
+            foreach (var i in intervals)
+                        Console.WriteLine(i.ToString());
         }
         static void Main(string[] args)
         {
