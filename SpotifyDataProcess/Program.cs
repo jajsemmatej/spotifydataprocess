@@ -2,6 +2,7 @@
 using System.ComponentModel.Design;
 using System.Text.Json;
 using System.Globalization;
+using System.Diagnostics.Metrics;
 
 namespace SpotifyDataProcess
 {
@@ -224,6 +225,7 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "emily_justice", smallSmoothing, "emily & justice", null);
             processGraphSumSimplified(records, "horkyze_slize", smallSmoothing, "horkýže slíže", null);
             processGraphSumSimplified(records, "kabat", smallSmoothing, "kabát", null);
+            processGraphSumSimplified(records, "bon_jovi", smallSmoothing, "bon jovi", null);
 
             processGraphSumSimplified(records, "roxette_sleeping_in_my_car", smallSmoothing, "Roxette", "sleeping in my car");
             processGraphSumSimplified(records, "roxette_joyride", smallSmoothing, "Roxette", "joyride");
@@ -257,6 +259,7 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "martin_garrix_smooth", bigSmoothing, "martin garrix", null);
             processGraphSumSimplified(records, "horkyze_slize_smooth", bigSmoothing, "horkýže slíže", null);
             processGraphSumSimplified(records, "kabat_smooth", bigSmoothing, "kabát", null);
+            processGraphSumSimplified(records, "bon_jovi_smooth", bigSmoothing, "bon jovi", null);
 
             processGraphSumSimplified(records, "titanium_smooth", bigSmoothing, "David Guetta", "Titanium (feat. sia)");
 
@@ -323,27 +326,42 @@ namespace SpotifyDataProcess
             }
             return result;
         }
-        private static void getBindedSongs(List<Record> records, string? artist, string? song, List<SongData> songList, double overlap)
+        private static List<SongData> getBindedSongs(List<Record> records, string? artist, string? song, List<SongData> songList, double overlap)
         {
-            Console.WriteLine($"Matching songs for: {artist} - {song}");
-            int counter = 1;
+            var result = new List<SongData>();
             var refIntervals = songFavoriteTimes(records, artist, song);
+            foreach (var refInterval in refIntervals)
+            {
+                result.AddRange(getSongsInPeakInterval(records, songList, overlap, refInterval));
+            }
+            return result;
+        }
+        private static List<SongData> getSongsInPeakInterval(List<Record> records, List<SongData> songList, double overlap, DateInterval refInterval)
+        {
+            List<SongData> result = new List<SongData>();
             foreach (var songData in songList)
             {
                 var intervals = songFavoriteTimes(records, songData.Artist, songData.Song);
                 bool match = false;
-                foreach (var refInterval in refIntervals)
+                foreach (var interval in intervals)
                 {
-                    foreach (var interval in intervals)
-                    {
-                        if (interval.OverlapDays(refInterval) >= refInterval.Duration.TotalDays * overlap)
-                            match = true;
-                    }
+                    if (interval.OverlapDays(refInterval) >= refInterval.Duration.TotalDays * overlap)
+                        match = true;
                 }
                 if (match)
                 {
-                    Console.WriteLine($" - match found ({counter ++}): {songData.Artist} - {songData.Song}");
+                    result.Add(new SongData { Artist = songData.Artist, Song = songData.Song });
                 }
+            }
+            return result;
+        }
+        private static void printMatches(List<SongData> results, string message)
+        {
+            Console.WriteLine(message);
+            long counter = 1;
+            foreach (var match in results)
+            {
+                Console.WriteLine($" - match found ({counter++}): {match.Artist} - {match.Song}");
             }
         }
         private static void processResults(List<Record> records)
@@ -352,6 +370,10 @@ namespace SpotifyDataProcess
             printSeparator();
             Console.WriteLine("Total Song Records: " + records.Count);
             Console.WriteLine("Total Listening Minutes: " + totalMinutes);
+            Console.WriteLine("Date Interval: " + 
+                records.Select(x => x.ts).Min().ToString("dd-MM-yyyy") + 
+                " - " + 
+                records.Select(x => x.ts).Max().ToString("dd-MM-yyyy"));
             printSeparator();
             processSongs(records, 200);
             printSeparator();
@@ -363,13 +385,14 @@ namespace SpotifyDataProcess
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
-            processTopArtists(ListDataRange(records, "01-05-2024", "01-01-2025"), 20);
+            processTopArtists(ListDataRange(records, "01-01-2025", "01-02-2026"), 20);
             printSeparator();
-            //myGraphs(records);
+            myGraphs(records);
             //getBindedSongs(records, "David Guetta", "Titanium (feat. Sia)", getTopSongs(records, 2000), 0.66);
-            var intervals = songFavoriteTimes(records, "chinaski", "každý ráno");
-            foreach (var i in intervals)
-                        Console.WriteLine(i.ToString());
+            //var intervals = songFavoriteTimes(records, "a-ha", "take on me");
+            //foreach (var i in intervals)
+            //    Console.WriteLine(i.ToString());
+            //printMatches(getBindedSongs(records, "a-ha", "take on me", getTopSongs(records, 1000), 0.66), $"Matching songs for: a-ha - take on me:");
         }
         static void Main(string[] args)
         {
