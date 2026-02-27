@@ -364,6 +364,34 @@ namespace SpotifyDataProcess
                 Console.WriteLine($" - match found ({counter++}): {match.Artist} - {match.Song}");
             }
         }
+        private static void songDiscovery(List<Record> records)
+        {
+            var groupedSongs = records.Select(x => new { x.ts, x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new
+                                        {
+                                            Song = x.Key.master_metadata_track_name,
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            FirstSeen = x.Min(s => s.ts).Date
+                                        }).OrderBy(x => x.FirstSeen).ToList();
+            List<GraphData> discovery = new List<GraphData>();
+            int idx = 0;
+            for(DateTime day = records.OrderBy(x => x.ts).First().ts.Date; day <= records.OrderBy(x => x.ts).Last().ts.Date; day = day.AddDays(1))
+            {
+                discovery.Add(new GraphData{Date = day, AvgPlaytime = 0});
+                while(idx < groupedSongs.Count() && groupedSongs[idx].FirstSeen == day)
+                {
+                    discovery.Last().AvgPlaytime += 1;
+                    idx ++;
+                }
+            }
+            discovery = smoothGraphData(discovery, 60);
+            discovery = smoothGraphData(discovery, 20);
+            string json = JsonSerializer.Serialize(discovery);
+            if (!Directory.Exists("graph_data"))
+                Directory.CreateDirectory("graph_data");
+            File.WriteAllText($"graph_data/song_discovery.json", json);
+        }
         private static void processResults(List<Record> records)
         {
             long totalMinutes = records.Sum(x => x.ms_played ?? 0) / (1000 * 60);
@@ -388,6 +416,7 @@ namespace SpotifyDataProcess
             processTopArtists(ListDataRange(records, "01-01-2025", "01-02-2026"), 20);
             printSeparator();
             myGraphs(records);
+            songDiscovery(records);
             //getBindedSongs(records, "David Guetta", "Titanium (feat. Sia)", getTopSongs(records, 2000), 0.66);
             //var intervals = songFavoriteTimes(records, "a-ha", "take on me");
             //foreach (var i in intervals)
