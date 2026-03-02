@@ -147,12 +147,15 @@ namespace SpotifyDataProcess
                 limit++;
             }
         }
-        private static List<GraphData> smoothGraphData(List<GraphData> data, int sumDays)
+        private static List<GraphData> smoothGraphData(List<GraphData> data, int sumDays, bool centralise = true)
         {
             List<GraphData> smoothData = new List<GraphData>();
             foreach (var d in data)
             {
-                smoothData.Add(new GraphData { Date = d.Date, AvgPlaytime = data.Where(x => x.Date >= d.Date.AddDays(-1 * (sumDays / 2 + sumDays % 2)) && x.Date <= d.Date.AddDays(sumDays / 2)).Sum(y => y.AvgPlaytime) / (double)(sumDays + 1) });
+                if(centralise)
+                    smoothData.Add(new GraphData { Date = d.Date, AvgPlaytime = data.Where(x => x.Date >= d.Date.AddDays(-1 * (sumDays / 2 + sumDays % 2)) && x.Date <= d.Date.AddDays(sumDays / 2)).Sum(y => y.AvgPlaytime) / (double)(sumDays + 1) });
+                else
+                    smoothData.Add(new GraphData { Date = d.Date, AvgPlaytime = data.Where(x => x.Date >= d.Date.AddDays(-1 * sumDays) && x.Date <= d.Date).Sum(y => y.AvgPlaytime) / (double)(sumDays + 1) });
             }
             return smoothData;
         }
@@ -206,7 +209,7 @@ namespace SpotifyDataProcess
         }
         private static void myGraphs(List<Record> records)
         {
-            var smallSmoothing = new List<int> { 30, 20 };
+            var smallSmoothing = new List<int> { 30, 10 };
             processGraphSumSimplified(records, "total", smallSmoothing, null, null);
             processGraphSumSimplified(records, "roxette", smallSmoothing, "roxette", null);
             processGraphSumSimplified(records, "abba", smallSmoothing, "abba", null);
@@ -242,7 +245,7 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "zombie", smallSmoothing, "Lucie Vondráčková", "Zombie");
             processGraphSumSimplified(records, "titanium", smallSmoothing, "David Guetta", "Titanium (feat. sia)");
 
-            var bigSmoothing = new List<int> { 180, 60 };
+            var bigSmoothing = new List<int> { 180, 30 };
             processGraphSumSimplified(records, "total_smooth", bigSmoothing, null, null);
             processGraphSumSimplified(records, "roxette_smooth", bigSmoothing, "roxette", null);
             processGraphSumSimplified(records, "abba_smooth", bigSmoothing, "abba", null);
@@ -385,12 +388,18 @@ namespace SpotifyDataProcess
                     idx ++;
                 }
             }
-            discovery = smoothGraphData(discovery, 60);
-            discovery = smoothGraphData(discovery, 20);
+            var discovery_s = smoothGraphData(discovery, 180, false);
+            discovery_s = smoothGraphData(discovery_s, 30);
+            discovery = smoothGraphData(discovery, 30, false);
+            discovery = smoothGraphData(discovery, 10);
             string json = JsonSerializer.Serialize(discovery);
             if (!Directory.Exists("graph_data"))
                 Directory.CreateDirectory("graph_data");
             File.WriteAllText($"graph_data/song_discovery.json", json);
+            json = JsonSerializer.Serialize(discovery_s);
+            if (!Directory.Exists("graph_data"))
+                Directory.CreateDirectory("graph_data");
+            File.WriteAllText($"graph_data/song_discovery_smooth.json", json);
         }
         private static void processResults(List<Record> records)
         {
