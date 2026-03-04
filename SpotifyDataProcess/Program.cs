@@ -40,6 +40,23 @@ namespace SpotifyDataProcess
                 limit--;
             }
         }
+        private static void favoriteSongsToDate(List<Record> records, DateTime date, int limit)
+        {
+            var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new
+                                        {
+                                            Song = x.Key.master_metadata_track_name,
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            Playtime = x.Sum(s => s.ms_played)
+                                        }).ToList();
+            int topSongCount2 = limit;
+            foreach (var song in groupedSongs.OrderByDescending(x => x.Playtime).Take(limit).ToList())
+            {
+                Console.WriteLine((topSongCount2 - limit + 1) + ": " + song.Artist + " - " + song.Song + " (" + (song.Playtime / (1000 * 60)) + ")");
+                limit--;
+            }
+        }
         private static List<SongData> getTopSongs(List<Record> records, int limit)
         {
             var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
@@ -401,6 +418,59 @@ namespace SpotifyDataProcess
                 Directory.CreateDirectory("graph_data");
             File.WriteAllText($"graph_data/song_discovery_smooth.json", json);
         }
+        private static void songRepeat(List<Record> records, int range)
+        {
+            var result = records
+                .GroupBy(r => r.ts.Date)
+                .Select(dayGroup =>
+                {
+                    var day = dayGroup.Key;
+
+                    var windowStart = day.AddDays(-1 * (range / 2 + range % 2));
+                    var windowEnd = day.AddDays(range / 2);
+
+                    var windowRecords = records
+                        .Where(r => r.ts.Date >= windowStart && r.ts.Date <= windowEnd);
+
+                    var totalPlaytime = windowRecords.Sum(r => r.ms_played);
+
+                    var distinctSongsCount = windowRecords
+                        .Select(r => new 
+                        { 
+                            r.master_metadata_track_name, 
+                            r.master_metadata_album_artist_name 
+                        })
+                        .Distinct()
+                        .Count();
+
+                    return new
+                    {
+                        Date = day,
+                        TimePerSong = distinctSongsCount == 0 
+                            ? 0 
+                            : totalPlaytime / (distinctSongsCount * 1000 * 210)
+                    };
+                })
+                .OrderBy(x => x.Date)
+                .ToList();
+            List<GraphData> discovery = new List<GraphData>();
+            for(DateTime day = records.OrderBy(x => x.ts).First().ts.Date; day <= records.OrderBy(x => x.ts).Last().ts.Date; day = day.AddDays(1))
+            {
+                discovery.Add(new GraphData{Date = day, AvgPlaytime = result.Where(x => x.Date == day).FirstOrDefault()?.TimePerSong ?? 0});
+            }
+            var discovery_s = smoothGraphData(discovery, 180, false);
+            discovery_s = smoothGraphData(discovery_s, 30);
+            discovery = smoothGraphData(discovery, 30, false);
+            discovery = smoothGraphData(discovery, 10);
+            string json = JsonSerializer.Serialize(discovery);
+            if (!Directory.Exists("graph_data"))
+                Directory.CreateDirectory("graph_data");
+            File.WriteAllText($"graph_data/song_repeat.json", json);
+            json = JsonSerializer.Serialize(discovery_s);
+            if (!Directory.Exists("graph_data"))
+                Directory.CreateDirectory("graph_data");
+            File.WriteAllText($"graph_data/song_repeat_smooth.json", json);
+        }
         private static void processResults(List<Record> records)
         {
             long totalMinutes = records.Sum(x => x.ms_played ?? 0) / (1000 * 60);
@@ -422,10 +492,11 @@ namespace SpotifyDataProcess
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
-            processTopArtists(ListDataRange(records, "01-01-2025", "01-02-2026"), 20);
+            processTopArtists(ListDataRange(records, "01-09-2025", "01-01-2026"), 20);
             printSeparator();
             myGraphs(records);
-            songDiscovery(records);
+            //songDiscovery(records);
+            //songRepeat(records, 30);
             //getBindedSongs(records, "David Guetta", "Titanium (feat. Sia)", getTopSongs(records, 2000), 0.66);
             //var intervals = songFavoriteTimes(records, "a-ha", "take on me");
             //foreach (var i in intervals)
