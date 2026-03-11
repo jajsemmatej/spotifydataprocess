@@ -196,6 +196,7 @@ namespace SpotifyDataProcess
             for (DateTime i = dateMin; i <= dateMax; i = i.AddDays(1))
             {
                 smoothedDays.Add(new GraphData { Date = i, AvgPlaytime = groupedDays.FirstOrDefault(x => x.Date == i)?.Playtime ?? 0 });
+                smoothedDays.Last().AvgPlaytime /= (1000 * 210); 
             }
 
             if (sumDays != null)

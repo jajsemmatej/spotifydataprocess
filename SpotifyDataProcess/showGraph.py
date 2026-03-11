@@ -15,7 +15,7 @@ def createGraph(json_path, outfilename):
     plt.plot(df["Date"], df["AvgPlaytime"], linewidth=2, marker="")
     plt.title("Average Playtime (Smoothed)")
     plt.xlabel("Date")
-    plt.ylabel("Avg Playtime (ms)")
+    plt.ylabel("Avg Playtime (songs)")
     plt.grid(True)
     plt.tight_layout()
 

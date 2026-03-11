@@ -24,7 +24,7 @@ def createCombinedGraph(json_path1, json_path2):
 
     plt.title("Average Playtime Comparison")
     plt.xlabel("Date")
-    plt.ylabel("Avg Playtime (ms)")
+    plt.ylabel("Avg Playtime (songs)")
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
