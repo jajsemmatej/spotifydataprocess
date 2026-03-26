@@ -472,6 +472,99 @@ namespace SpotifyDataProcess
                 Directory.CreateDirectory("graph_data");
             File.WriteAllText($"graph_data/song_repeat_smooth.json", json);
         }
+        private static void processSongsByTimesPlayed(List<Record> records, int limit)
+        {
+            var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Where(x => x.ms_played >= 20 * 1000)
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new
+                                        {
+                                            Song = x.Key.master_metadata_track_name,
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            TimesPlayed = x.Count()
+                                        }).ToList();
+            Console.WriteLine("Total Unique Songs: " + groupedSongs.Count);
+            Console.WriteLine("The list of top " + limit + " songs by times played:");
+            Console.WriteLine();
+            int topSongCount2 = limit;
+            foreach (var song in groupedSongs.OrderByDescending(x => x.TimesPlayed).Take(limit).ToList())
+            {
+                Console.WriteLine((topSongCount2 - limit + 1) + ": " + song.Artist + " - " + song.Song + " (" + song.TimesPlayed + ")");
+                limit--;
+            }
+        }
+        private static void processTopArtistsByTimesPlayed(List<Record> records, int limit)
+        {
+            var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Where(x => x.ms_played >= 20 * 1000)
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new
+                                        {
+                                            Song = x.Key.master_metadata_track_name,
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            TimesPlayed = x.Count()
+                                        }).ToList();
+            var groupedArtists = groupedSongs.GroupBy(x => x.Artist)
+                                        .Select(x => new
+                                        {
+                                            Artist = x.Key,
+                                            Playtime = x.Sum(s => s.TimesPlayed)
+                                        }).ToList();
+            Console.WriteLine("The list of top " + limit + " artists (by song play times):");
+            Console.WriteLine();
+            int topArtistCount2 = limit;
+            foreach (var artist in groupedArtists.OrderByDescending(x => x.Playtime).Take(limit).ToList())
+            {
+                Console.WriteLine((topArtistCount2 - limit + 1) + ": " + artist.Artist + " (" + artist.Playtime + ")");
+                limit--;
+            }
+        }
+        private static void processTopSongsByArtistByTimesPlayed(List<Record> records, int limit, string artist)
+        {
+            var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Where(x => x.master_metadata_album_artist_name == artist && x.ms_played >= 20 * 1000)
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new
+                                        {
+                                            Song = x.Key.master_metadata_track_name,
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            TimesPlayed = x.Count()
+                                        }).ToList();
+            Console.WriteLine("The list of top " + limit + " songs from " + artist + "(by times played)");
+            Console.WriteLine();
+            int topSongCount2 = limit;
+            foreach (var song in groupedSongs.OrderByDescending(x => x.TimesPlayed).Take(limit).ToList())
+            {
+                Console.WriteLine((topSongCount2 - limit + 1) + ": " + song.Artist + " - " + song.Song + " (" + (song.TimesPlayed) + ")");
+                limit--;
+            }
+        }
+        private static void processTopArtistsByNumberOfSongs(List<Record> records, int limit, int songTimes)
+        {
+            var groupedSongs = records.Select(x => new { x.ms_played, x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Where(x => x.ms_played >= 20 * 1000)
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new
+                                        {
+                                            Song = x.Key.master_metadata_track_name,
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            TimesPlayed = x.Count()
+                                        }).Where(x => x.TimesPlayed >= songTimes).ToList();
+            var groupedArtists = groupedSongs.GroupBy(x => x.Artist)
+                                        .Select(x => new
+                                        {
+                                            Artist = x.Key,
+                                            Playtime = x.Count()
+                                        }).ToList();
+            Console.WriteLine("The list of top " + limit + " artists by number of good songs:");
+            Console.WriteLine();
+            int topArtistCount2 = limit;
+            foreach (var artist in groupedArtists.OrderByDescending(x => x.Playtime).Take(limit).ToList())
+            {
+                Console.WriteLine((topArtistCount2 - limit + 1) + ": " + artist.Artist + " (" + artist.Playtime + ")");
+                limit--;
+            }
+        }
         private static void processResults(List<Record> records)
         {
             long totalMinutes = records.Sum(x => x.ms_played ?? 0) / (1000 * 60);
@@ -483,19 +576,27 @@ namespace SpotifyDataProcess
                 " - " + 
                 records.Select(x => x.ts).Max().ToString("dd-MM-yyyy"));
             printSeparator();
-            processSongs(records, 200);
+            //processSongs(records, 200);
+            processSongsByTimesPlayed(records, 200);
             printSeparator();
             processTopArtists(records, 50);
+            //processTopArtistsByTimesPlayed(records, 50);
             printSeparator();
-            processTopSongsByArtist(records, 50, "Roxette");
+            processTopArtistsByNumberOfSongs(records, 50, 20);
+            printSeparator();
+            //processTopSongsByArtist(records, 50, "Roxette");
+            processTopSongsByArtistByTimesPlayed(records, 50, "Roxette");
             printSeparator();
             processTopDays(records, 20);
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
-            processTopArtists(ListDataRange(records, "01-09-2025", "01-01-2026"), 20);
+            var records_subset = ListDataRange(records, "01-01-2022", "01-05-2024");
+            processSongs(records_subset, 40);
             printSeparator();
-            myGraphs(records);
+            processTopArtists(records_subset, 20);
+            printSeparator();
+            //myGraphs(records);
             //songDiscovery(records);
             //songRepeat(records, 30);
             //getBindedSongs(records, "David Guetta", "Titanium (feat. Sia)", getTopSongs(records, 2000), 0.66);
