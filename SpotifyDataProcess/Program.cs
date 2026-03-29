@@ -565,6 +565,26 @@ namespace SpotifyDataProcess
                 limit--;
             }
         }
+        private static void hoursInDay(List<Record> records)
+        {
+            var groupedHours = records.Select(x => new { x.ts.Hour, x.ms_played })
+                                        .GroupBy(x => new { x.Hour })
+                                        .Select(x => new
+                                        {
+                                            Hour = x.Key.Hour,
+                                            PlayTime = x.Sum(s => s.ms_played)
+                                        }).OrderBy(x => x.Hour).ToList();
+            List<GraphData> hours = new List<GraphData>();
+            foreach(var h in groupedHours)
+            {
+                var d = DateTime.Today;
+                hours.Add(new GraphData { Date = d.AddHours(h.Hour), AvgPlaytime = (h.PlayTime ?? 0) / 1000 / 60 });
+            }
+            string json = JsonSerializer.Serialize(hours);
+            if (!Directory.Exists("graph_data"))
+                Directory.CreateDirectory("graph_data");
+            File.WriteAllText($"graph_data/hours.json", json);
+        }
         private static void processResults(List<Record> records)
         {
             long totalMinutes = records.Sum(x => x.ms_played ?? 0) / (1000 * 60);
@@ -596,6 +616,8 @@ namespace SpotifyDataProcess
             printSeparator();
             processTopArtists(records_subset, 20);
             printSeparator();
+            hoursInDay(records);
+            //printSeparator();
             //myGraphs(records);
             //songDiscovery(records);
             //songRepeat(records, 30);
