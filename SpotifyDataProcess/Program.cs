@@ -262,6 +262,7 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "kesha_tik_tok", smallSmoothing, "kesha", "tik tok");
             processGraphSumSimplified(records, "zombie", smallSmoothing, "Lucie Vondráčková", "Zombie");
             processGraphSumSimplified(records, "titanium", smallSmoothing, "David Guetta", "Titanium (feat. sia)");
+            processGraphSumSimplified(records, "marathon", smallSmoothing, "Rush", "Marathon");
 
             var bigSmoothing = new List<int> { 180, 30 };
             processGraphSumSimplified(records, "total_smooth", bigSmoothing, null, null);
@@ -592,7 +593,7 @@ namespace SpotifyDataProcess
             processDaysInWeek(records);
             printSeparator();
             var records_subset = ListDataRange(records, "01-01-2022", "01-05-2024");
-            processSongs(records_subset, 40);
+            processSongsByTimesPlayed(records_subset, 40);
             printSeparator();
             processTopArtists(records_subset, 20);
             printSeparator();
