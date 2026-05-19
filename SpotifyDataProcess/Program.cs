@@ -540,6 +540,28 @@ namespace SpotifyDataProcess
                 limit--;
             }
         }
+        private static void processFullLibrary(List<Record> records)
+        {
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+                                        .Where(x => x.ms_played >= 30 * 1000)
+                                        .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
+                                        .Select(x => new
+                                        {
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Artist = x.Key.master_metadata_album_artist_name,
+                                            TimesPlayed = x.Count(),
+                                            Playtime = x.Sum(y => y.ms_played)
+                                        }).ToList();
+            var filtered = groupedSongs.Where(x => x.TimesPlayed >= 5 && x.Playtime >= 15 * 60 * 1000).OrderByDescending(x => x.TimesPlayed).ToList();
+            Console.WriteLine("Total library: ");
+            Console.WriteLine("  size: " + filtered.Count());
+            string res = "";
+            foreach (var song in filtered)
+            {
+                res += (song.Artist + " - " + song.Song + " (" + (song.TimesPlayed) + ")" + Environment.NewLine);
+            }
+            File.WriteAllText($"library.txt", res);
+        }
         private static void processTopArtistsByNumberOfSongs(List<Record> records, int limit, int songTimes)
         {
             var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
@@ -596,6 +618,7 @@ namespace SpotifyDataProcess
                 records.Select(x => x.ts).Min().ToString("dd-MM-yyyy") + 
                 " - " + 
                 records.Select(x => x.ts).Max().ToString("dd-MM-yyyy"));
+            processFullLibrary(records);
             printSeparator();
             ///*
             //processSongs(records, 200);
@@ -617,7 +640,7 @@ namespace SpotifyDataProcess
             var records_subset = ListDataRange(records, "01-07-2022", "01-02-2026");
             processSongsByTimesPlayed(records_subset, 50);
             printSeparator();
-            processTopArtists(records_subset, 30);
+            processTopArtists(records_subset, 100);
             printSeparator();
             hoursInDay(records);
             //printSeparator();
