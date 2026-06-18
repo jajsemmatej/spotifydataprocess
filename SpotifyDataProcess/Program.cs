@@ -552,7 +552,7 @@ namespace SpotifyDataProcess
                                             TimesPlayed = x.Count(),
                                             Playtime = x.Sum(y => y.ms_played)
                                         }).ToList();
-            var filtered = groupedSongs.Where(x => x.TimesPlayed >= 5 && x.Playtime >= 15 * 60 * 1000).OrderByDescending(x => x.TimesPlayed).ToList();
+            var filtered = groupedSongs.Where(x => x.TimesPlayed >= 3 && x.Playtime >= 12 * 60 * 1000).OrderByDescending(x => x.TimesPlayed).ToList();
             Console.WriteLine("Total library: ");
             Console.WriteLine("  size: " + filtered.Count());
             string res = "";
@@ -627,7 +627,7 @@ namespace SpotifyDataProcess
             processTopArtists(records, 50);
             //processTopArtistsByTimesPlayed(records, 50);
             printSeparator();
-            processTopArtistsByNumberOfSongs(records, 50, 20);
+            processTopArtistsByNumberOfSongs(records, 50, 10);
             printSeparator();
             //processTopSongsByArtist(records, 50, "Roxette");
             processTopSongsByArtistByTimesPlayed(records, 50, "Roxette");
@@ -637,7 +637,7 @@ namespace SpotifyDataProcess
             processDaysInWeek(records);
             printSeparator();
             //*/
-            var records_subset = ListDataRange(records, "01-07-2022", "01-02-2026");
+            var records_subset = ListDataRange(records, "01-01-2020", "01-07-2026");
             processSongsByTimesPlayed(records_subset, 50);
             printSeparator();
             processTopArtists(records_subset, 100);
