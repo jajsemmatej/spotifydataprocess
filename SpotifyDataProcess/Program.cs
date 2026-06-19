@@ -265,6 +265,7 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "horkyze_slize", smallSmoothing, "horkýže slíže", null);
             processGraphSumSimplified(records, "kabat", smallSmoothing, "kabát", null);
             processGraphSumSimplified(records, "bon_jovi", smallSmoothing, "bon jovi", null);
+            processGraphSumSimplified(records, "starship", smallSmoothing, "starship", null);
 
             processGraphSumSimplified(records, "roxette_sleeping_in_my_car", smallSmoothing, "Roxette", "sleeping in my car");
             processGraphSumSimplified(records, "roxette_joyride", smallSmoothing, "Roxette", "joyride");
@@ -300,6 +301,7 @@ namespace SpotifyDataProcess
             processGraphSumSimplified(records, "horkyze_slize_smooth", bigSmoothing, "horkýže slíže", null);
             processGraphSumSimplified(records, "kabat_smooth", bigSmoothing, "kabát", null);
             processGraphSumSimplified(records, "bon_jovi_smooth", bigSmoothing, "bon jovi", null);
+            processGraphSumSimplified(records, "starship_smooth", bigSmoothing, "starship", null);
 
             processGraphSumSimplified(records, "titanium_smooth", bigSmoothing, "David Guetta", "Titanium (feat. sia)");
 
@@ -660,6 +662,8 @@ namespace SpotifyDataProcess
             printSeparator();
             processTopSongsByArtistByTimesPlayed(records, 20, "Kabát");
             printSeparator();
+            processTopSongsByArtistByTimesPlayed(records, 20, "Starship");
+            printSeparator();
             processTopDays(records, 20);
             printSeparator();
             processYears(records);
@@ -667,10 +671,10 @@ namespace SpotifyDataProcess
             processDaysInWeek(records);
             printSeparator();
             //*/
-            var records_subset = ListDataRange(records, "01-01-2020", "01-07-2026");
+            var records_subset = ListDataRange(records, "01-07-2025", "01-07-2026");
             processSongsByTimesPlayed(records_subset, 50);
             printSeparator();
-            processTopArtists(records_subset, 100);
+            processTopArtists(records_subset, 20);
             printSeparator();
             hoursInDay(records);
             //printSeparator();
