@@ -122,7 +122,7 @@ namespace SpotifyDataProcess
         }
         private static void processTopDays(List<Record> records, int limit)
         {
-            var groupedDays = records.Select(x => new { x.ts.Date, x.ms_played })
+            var groupedDays = records.Select(x => new { x.ts.ToLocalTime().Date, x.ms_played })
                                         .GroupBy(x => new { x.Date })
                                         .Select(x => new
                                         {
@@ -138,9 +138,27 @@ namespace SpotifyDataProcess
                 limit--;
             }
         }
+        private static void processYears(List<Record> records)
+        {
+            var groupedYears = records.Select(x => new { x.ts.ToLocalTime().Date.Year, x.ms_played })
+                                        .GroupBy(x => new { x.Year })
+                                        .Select(x => new
+                                        {
+                                            Year = x.Key.Year,
+                                            Playtime = x.Sum(s => s.ms_played)
+                                        }).ToList();
+            Console.WriteLine("The list of years:");
+            Console.WriteLine();
+            int n = 1;
+            foreach (var year in groupedYears.OrderByDescending(x => x.Playtime).ToList())
+            {
+                Console.WriteLine(n + ": " + year.Year + " (" + (year.Playtime / (1000 * 60)) + ")");
+                n++;
+            }
+        }
         private static void processDaysInWeek(List<Record> records)
         {
-            var groupedDays = records.Select(x => new { x.ts.Date, x.ms_played })
+            var groupedDays = records.Select(x => new { x.ts.ToLocalTime().Date, x.ms_played })
                                         .GroupBy(x => new { x.Date })
                                         .Select(x => new
                                         {
@@ -214,11 +232,11 @@ namespace SpotifyDataProcess
         {
             Func<Record, bool> selector = x => true;
             if (artist != null && song != null)
-                selector = x => x.master_metadata_album_artist_name?.ToLower()?.Contains(artist.ToLower()) == true && x.master_metadata_track_name?.ToLower() == song.ToLower();
+                selector = x => StringUtils.ArtistFix(x.master_metadata_album_artist_name)?.ToLower()?.Contains(artist.ToLower()) == true && StringUtils.ProcessSongName(x.master_metadata_track_name, null)?.ToLower() == StringUtils.ProcessSongName(song, null)?.ToLower();
             if (artist != null && song == null)
-                selector = x => x.master_metadata_album_artist_name?.ToLower()?.Contains(artist.ToLower()) == true;
+                selector = x => StringUtils.ArtistFix(x.master_metadata_album_artist_name)?.ToLower()?.Contains(artist.ToLower()) == true;
             if (artist == null && song != null)
-                selector = x => x.master_metadata_track_name?.ToLower() == song.ToLower();
+                selector = x => StringUtils.ProcessSongName(x.master_metadata_track_name, null)?.ToLower() == StringUtils.ProcessSongName(song, null)?.ToLower();
             return selector;
         }
         private static void processGraphSumSimplified(List<Record> records, string filename, List<int> sumDays, string? artist, string? song)
@@ -590,7 +608,7 @@ namespace SpotifyDataProcess
         }
         private static void hoursInDay(List<Record> records)
         {
-            var groupedHours = records.Select(x => new { x.ts.Hour, x.ms_played })
+            var groupedHours = records.Select(x => new { x.ts.ToLocalTime().Hour, x.ms_played })
                                         .GroupBy(x => new { x.Hour })
                                         .Select(x => new
                                         {
@@ -643,6 +661,8 @@ namespace SpotifyDataProcess
             processTopSongsByArtistByTimesPlayed(records, 20, "Kabát");
             printSeparator();
             processTopDays(records, 20);
+            printSeparator();
+            processYears(records);
             printSeparator();
             processDaysInWeek(records);
             printSeparator();
