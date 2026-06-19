@@ -6,12 +6,12 @@ namespace SpotifyDataProcess
 {
   public static class StringUtils
   {
-    private static Dictionary<string, string> songTranslator = new Dictionary<string, string>();
+    private static Dictionary<Tuple<string, string>, string> songTranslator = new();
     private static Dictionary<string, string> artistTranslator = new Dictionary<string, string>
     {
       {"Emily", "Emily & Justice"}
     };
-    public static string? ProcessSongName(string? text)
+    public static string? ProcessSongName(string? text, string? artist)
     {
       if (string.IsNullOrEmpty(text))
         return text;
@@ -34,15 +34,17 @@ namespace SpotifyDataProcess
         }
       }
       var result = sb.ToString().Normalize(NormalizationForm.FormC).Trim();
-      songTranslator[result] = text;
+      var key = new Tuple<string, string>(result, artist ?? "");
+      songTranslator[key] = text;
       return result;
     }
 
-    public static string? OriginalName(string? text)
+    public static string? OriginalName(string? text, string? artist)
     {
       if (string.IsNullOrEmpty(text))
         return text;
-      return songTranslator.ContainsKey(text) ? songTranslator[text] : text;
+      var key = new Tuple<string, string>(text, artist ?? "");
+      return songTranslator.ContainsKey(key) ? songTranslator[key] : text;
     }
 
     public static string? ArtistFix(string? text)

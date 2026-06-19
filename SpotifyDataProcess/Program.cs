@@ -22,11 +22,11 @@ namespace SpotifyDataProcess
         }
         private static void processSongs(List<Record> records, int limit)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             Playtime = x.Sum(s => s.ms_played)
                                         }).ToList();
@@ -42,11 +42,11 @@ namespace SpotifyDataProcess
         }
         private static void favoriteSongsToDate(List<Record> records, DateTime date, int limit)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             Playtime = x.Sum(s => s.ms_played)
                                         }).ToList();
@@ -59,11 +59,11 @@ namespace SpotifyDataProcess
         }
         private static List<SongData> getTopSongs(List<Record> records, int limit)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new SongData
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             Playtime = x.Sum(s => s.ms_played)
                                         }).ToList();
@@ -71,11 +71,11 @@ namespace SpotifyDataProcess
         }
         private static void processTopArtists(List<Record> records, int limit)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             Playtime = x.Sum(s => s.ms_played)
                                         }).ToList();
@@ -102,12 +102,12 @@ namespace SpotifyDataProcess
         }
         private static void processTopSongsByArtist(List<Record> records, int limit, string artist)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .Where(x => x.master_metadata_album_artist_name != null && x.master_metadata_album_artist_name.ToLower().Contains(artist.ToLower()))
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             Playtime = x.Sum(s => s.ms_played)
                                         }).ToList();
@@ -388,11 +388,11 @@ namespace SpotifyDataProcess
         }
         private static void songDiscovery(List<Record> records)
         {
-            var groupedSongs = records.Select(x => new { x.ts, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ts, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             FirstSeen = x.Min(s => s.ts).Date
                                         }).OrderBy(x => x.FirstSeen).ToList();
@@ -475,12 +475,12 @@ namespace SpotifyDataProcess
         }
         private static void processSongsByTimesPlayed(List<Record> records, int limit)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .Where(x => x.ms_played >= 20 * 1000)
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             TimesPlayed = x.Count()
                                         }).ToList();
@@ -496,12 +496,12 @@ namespace SpotifyDataProcess
         }
         private static void processTopArtistsByTimesPlayed(List<Record> records, int limit)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .Where(x => x.ms_played >= 20 * 1000)
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             TimesPlayed = x.Count()
                                         }).ToList();
@@ -522,12 +522,12 @@ namespace SpotifyDataProcess
         }
         private static void processTopSongsByArtistByTimesPlayed(List<Record> records, int limit, string artist)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .Where(x => x.master_metadata_album_artist_name != null && x.master_metadata_album_artist_name.ToLower().Contains(artist.ToLower()) && x.ms_played >= 20 * 1000)
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             TimesPlayed = x.Count()
                                         }).ToList();
@@ -542,12 +542,12 @@ namespace SpotifyDataProcess
         }
         private static void processFullLibrary(List<Record> records)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .Where(x => x.ms_played >= 30 * 1000)
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             TimesPlayed = x.Count(),
                                             Playtime = x.Sum(y => y.ms_played)
@@ -564,12 +564,12 @@ namespace SpotifyDataProcess
         }
         private static void processTopArtistsByNumberOfSongs(List<Record> records, int limit, int songTimes)
         {
-            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
+            var groupedSongs = records.Select(x => new { x.ms_played, master_metadata_track_name = StringUtils.ProcessSongName(x.master_metadata_track_name, StringUtils.ArtistFix(x.master_metadata_album_artist_name)), master_metadata_album_artist_name = StringUtils.ArtistFix(x.master_metadata_album_artist_name) })
                                         .Where(x => x.ms_played >= 20 * 1000)
                                         .GroupBy(x => new { x.master_metadata_track_name, x.master_metadata_album_artist_name })
                                         .Select(x => new
                                         {
-                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name),
+                                            Song = StringUtils.OriginalName(x.Key.master_metadata_track_name, x.Key.master_metadata_album_artist_name),
                                             Artist = x.Key.master_metadata_album_artist_name,
                                             TimesPlayed = x.Count()
                                         }).Where(x => x.TimesPlayed >= songTimes).ToList();
@@ -630,7 +630,17 @@ namespace SpotifyDataProcess
             processTopArtistsByNumberOfSongs(records, 50, 10);
             printSeparator();
             //processTopSongsByArtist(records, 50, "Roxette");
-            processTopSongsByArtistByTimesPlayed(records, 50, "Roxette");
+            processTopSongsByArtistByTimesPlayed(records, 20, "Roxette");
+            printSeparator();
+            processTopSongsByArtistByTimesPlayed(records, 20, "ABBA");
+            printSeparator();
+            processTopSongsByArtistByTimesPlayed(records, 20, "Bon Jovi");
+            printSeparator();
+            processTopSongsByArtistByTimesPlayed(records, 20, "Green Day");
+            printSeparator();
+            processTopSongsByArtistByTimesPlayed(records, 20, "Taylor Swift");
+            printSeparator();
+            processTopSongsByArtistByTimesPlayed(records, 20, "Kabát");
             printSeparator();
             processTopDays(records, 20);
             printSeparator();
