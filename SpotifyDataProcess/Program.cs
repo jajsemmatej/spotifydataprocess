@@ -8,7 +8,7 @@ namespace SpotifyDataProcess
 {
     internal class Program
     {
-        private static List<Record> filterResults(List<Record> records)
+        private static List<Record> preprocessResults(List<Record> records)
         {
             return records.Where(x =>
                 x.episode_name == null &&
@@ -672,6 +672,8 @@ namespace SpotifyDataProcess
             printSeparator();
             //*/
             var records_subset = ListDataRange(records, "01-07-2025", "01-07-2026");
+            totalMinutes = records_subset.Sum(x => x.ms_played ?? 0) / (1000 * 60);
+            Console.WriteLine("Total Listening Minutes: " + totalMinutes);
             processSongsByTimesPlayed(records_subset, 50);
             printSeparator();
             processTopArtists(records_subset, 20);
@@ -708,7 +710,7 @@ namespace SpotifyDataProcess
             Console.WriteLine("Total Records: " + totalRecords);
             if (totalRecords != database.Count)
                 throw new Exception("wtf1");
-            processResults(filterResults(database));
+            processResults(preprocessResults(database));
         }
     }
 }
